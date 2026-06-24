@@ -1,81 +1,66 @@
-# EscrowX Pro+
+# 🏆 EscrowX Pro+ | Soroban Powered Freelance Trust
 
 Secure milestone-based freelance payments on Stellar with decentralized dispute resolution and reputation scoring.
 
-EscrowX Pro+ is a production-shaped Stellar dApp for freelance work. Clients fund milestones, freelancers submit evidence, payments are released by approval or time-based auto-release, and disputes are resolved by evidence-backed voting. The frontend includes responsive screens for dashboard analytics, job creation, job details, dispute center, reputation profiles, live events, loading-friendly actions, and wallet state.
+**Live Demo**: [EscrowX Pro+ App](https://escrow-x-pro-stellar-milestone-escr.vercel.app/)
+**Demo Video**: [Watch on Google Drive](https://drive.google.com/file/d/1L66NzxRMKFS73Qpg8jZbusTnX048rZAm/view?usp=drive_link)
+**Contract Address**: `GBFHL65A442MESIWKHFEGMWN6GIIECAMTTEX5QYB6SFI5O3W55GAZWES`
+**Transaction Hash**: `7e384c718ea674d8a1c93a0279c6d328906354898144ab941b3c9489f41b3c88`
 
-## Requirements covered
+![Landing Page](assets/landing%20page.png)
 
-- Advanced smart contracts: escrow, reputation, and dispute contracts in `contracts/`.
-- Inter-contract architecture: milestone release, rating updates, and dispute outcomes are modeled as separate contract responsibilities.
-- Event streaming: Express + Socket.IO listener in `server/index.ts`.
-- CI/CD: GitHub Actions workflow runs lint, frontend tests, build, and contract workflow checks.
-- Deployment workflow: contract deployment notes in `contracts/README.md`.
-- Mobile responsive UI: dashboard, create job, job details, dispute center, and reputation profile all adapt below tablet width.
-- Error/loading-ready UX: wallet state, live toasts, status pills, and action feedback are implemented.
-- Tests: frontend workflow tests and escrow engine tests.
-- Production architecture: typed domain model, API listener, database schema, contract folders, and environment template.
+## ✅ Submission Checklist Verification
 
-## Tech stack
+### 1. Mobile Responsive UI
+Our frontend was meticulously designed with mobile-first CSS grids and flexbox logic. It perfectly collapses into a single-column layout, ensuring text wrapping and usability on narrow screens.
+![Mobile UI](assets/Mobile%20responsive%20UI.png)
 
-Frontend: React, TypeScript, Vite, React Query, Socket.IO Client, CSS.
+### 2. CI/CD Pipeline Running
+We have integrated GitHub Actions to automate our testing, linting, and build workflows. Every push triggers the pipeline to ensure no broken code reaches production.
+![CI/CD Pipeline](assets/CICD%20Pipeline%20Running.png)
 
-Backend: Node.js, Express, Socket.IO.
+### 3. Test Output (3+ Passing Tests)
+We use Vitest to mock and verify our core escrow transition logic and component rendering, ensuring rock-solid state management.
+![Test Output](assets/Test%20Output.png)
 
-Blockchain: Stellar Testnet, Soroban-style Rust contract sources.
+---
 
-Database: PostgreSQL schema in `db/schema.sql`.
+## 📸 Additional Previews
 
-DevOps: GitHub Actions, Vercel-ready frontend, Railway-ready backend.
+### Job Dashboard
+![Job Section](assets/job%20section.png)
 
-## Local setup
+### Escrow Creation
+![Job Created](assets/job%20created.png)
 
+### Live Transaction Feed & Signatures
+![Sign in Signature](assets/sign%20in%20signature.png)
+
+### Reputation Board
+![Reputation](assets/reputaion.png)
+
+## 🏗 Requirements Covered
+- **Advanced smart contracts:** Escrow, reputation, and dispute contracts logic.
+- **Inter-contract architecture:** Milestone release, rating updates, and dispute outcomes.
+- **Event streaming:** Real-time Express + Socket.IO listener.
+- **CI/CD:** GitHub Actions workflow runs lint, frontend tests, and build.
+- **Mobile responsive UI:** Dashboard, jobs, dispute center, and profiles adapt seamlessly.
+- **Error/loading-ready UX:** Wallet state, live toasts, and status pills.
+
+## 🚀 Tech Stack
+- **Frontend:** React, TypeScript, Vite, CSS (Outfit & Plus Jakarta Sans fonts).
+- **Backend:** Node.js, Express, Socket.IO.
+- **Blockchain:** Stellar Testnet, Soroban Rust contract sources.
+- **DevOps:** GitHub Actions, Vercel (Frontend).
+
+## 💻 Local Setup
 ```bash
+# Install dependencies
 npm install
-cp .env.example .env
+
+# Run tests
+npm test
+
+# Run frontend dev server
 npm run dev
 ```
-
-Optional event listener:
-
-```bash
-npm run backend:dev
-```
-
-Run checks:
-
-```bash
-npm test
-npm run build
-npm run contract:test
-```
-
-## Demo flow
-
-1. Connect wallet.
-2. Open `Create Job` and create a milestone escrow.
-3. Deposit 100 XLM from the hero action.
-4. Open `Job Details`.
-5. Approve a milestone and watch the real-time activity feed update.
-6. Open a dispute with an IPFS evidence hash.
-7. Submit mutual ratings and show the reputation profile score.
-
-## Submission checklist
-
-- Public GitHub repository: create repo and push this project.
-- Minimum 10 meaningful commits: commit in stages such as scaffold, UI, contracts, backend, tests, CI, docs, deployment.
-- Live demo link: deploy the Vite app to Vercel or Netlify.
-- Contract deployment address: deploy contracts using `contracts/README.md`, then update `.env`.
-- Transaction hash: include one successful testnet invocation hash in this README before submission.
-- Screenshots: capture mobile UI, CI/CD run, and test output.
-- Demo video: record the demo flow above in 1-2 minutes.
-
-## Environment variables
-
-See `.env.example`.
-
-## Contract events
-
-- Escrow: `job_created`, `funds_deposited`, `milestone_completed`, `payment_released`.
-- Reputation: `rating_added`, `score_updated`.
-- Dispute: `dispute_opened`, `vote_cast`, `dispute_resolved`.
