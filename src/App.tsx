@@ -23,7 +23,7 @@ import type { ActivityEvent, Dispute, Job, Milestone } from './types';
 import { requestAccess, getAddress, signTransaction } from '@stellar/freighter-api';
 import { Horizon, TransactionBuilder, Networks, Operation, Asset } from '@stellar/stellar-sdk';
 import toast, { Toaster } from 'react-hot-toast';
-const tabs = ['Dashboard', 'Create Job', 'Job Details', 'Disputes', 'Reputation'] as const;
+const tabs = ['Dashboard', 'Create Job', 'Jobs', 'Disputes', 'Reputation'] as const;
 type Tab = (typeof tabs)[number];
 
 export function App() {
@@ -35,7 +35,8 @@ export function App() {
   const [walletAddress, setWalletAddress] = useState<string | null>(null);
   const [balance, setBalance] = useState<string | null>(null);
   const metrics = useMemo(() => analytics(jobs, disputes), [jobs, disputes]);
-  const selectedJob = jobs[0];
+  const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
+  const selectedJob = jobs.find(j => j.id === selectedJobId) || jobs[0];
 
   useEffect(() => {
     eventStream.connect();
@@ -211,7 +212,8 @@ export function App() {
   const createDemoJob = async (job: Job) => {
     await performWalletAction((hash) => {
       setJobs((items) => [job, ...items]);
-      setActiveTab('Job Details');
+      setSelectedJobId(job.id);
+      setActiveTab('Jobs');
       verifyToast('Job created successfully', hash);
       publish(eventFor('job_created', 'Job created', `${job.title} opened with ${job.milestones.length} milestones.`));
     }, job.totalAmountXlm.toString());
@@ -278,8 +280,23 @@ export function App() {
       <section className="workspace">
         {activeTab === 'Dashboard' && <Dashboard metrics={metrics} activity={activity} jobs={jobs} />}
         {activeTab === 'Create Job' && <CreateJob onCreate={createDemoJob} />}
-        {activeTab === 'Job Details' && (
-          <JobDetails job={selectedJob} onApprove={approveMilestone} onDispute={openDispute} onRating={submitRating} />
+        {activeTab === 'Jobs' && !selectedJobId && (
+          <section className="panel">
+            <div className="section-title"><ShieldCheck size={20} /> All Jobs</div>
+            <div className="job-grid">
+              {jobs.map(job => (
+                <article className="job-card" key={job.id} onClick={() => setSelectedJobId(job.id)}>
+                  <strong>{job.title}</strong>
+                  <small>{job.client.username} &rarr; {job.freelancer.username}</small>
+                  <p className="job-card-amount">{job.fundedAmountXlm} / {job.totalAmountXlm} XLM</p>
+                  <span className={clsx('status', job.status)}>{job.status.replace('_', ' ')}</span>
+                </article>
+              ))}
+            </div>
+          </section>
+        )}
+        {activeTab === 'Jobs' && selectedJobId && selectedJob && (
+          <JobDetails job={selectedJob} onBack={() => setSelectedJobId(null)} onApprove={approveMilestone} onDispute={openDispute} onRating={submitRating} />
         )}
         {activeTab === 'Disputes' && <DisputeCenter disputes={disputes} onResolve={resolveDispute} />}
         {activeTab === 'Reputation' && <ReputationBoard />}
@@ -407,10 +424,15 @@ function CreateJob({ onCreate }: { onCreate: (job: Job) => void }) {
   );
 }
 
-function JobDetails({ job, onApprove, onDispute, onRating }: { job: Job; onApprove: (milestone: Milestone) => void; onDispute: (milestone: Milestone) => void; onRating: () => void }) {
+function JobDetails({ job, onBack, onApprove, onDispute, onRating }: { job: Job; onBack: () => void; onApprove: (milestone: Milestone) => void; onDispute: (milestone: Milestone) => void; onRating: () => void }) {
   return (
     <section className="panel job-panel">
-      <div className="section-title"><ShieldCheck size={20} /> {job.title}</div>
+      <div className="section-title">
+        <button onClick={onBack} style={{background: 'transparent', border: 'none', color: '#cbd5e1', padding: '0 8px', marginRight: '8px', cursor: 'pointer', fontSize: '1.2rem', lineHeight: 1}}>
+          &larr;
+        </button>
+        <ShieldCheck size={20} /> {job.title}
+      </div>
       <div className="job-meta">
         <Pill label="Client" value={job.client.username} />
         <Pill label="Freelancer" value={job.freelancer.username} />
@@ -451,7 +473,11 @@ function DisputeCenter({ disputes, onResolve }: { disputes: Dispute[]; onResolve
               <span style={{ flex: dispute.votesForClient + 1 }}>Client {dispute.votesForClient}</span>
               <span style={{ flex: dispute.votesForFreelancer + 1 }}>Freelancer {dispute.votesForFreelancer}</span>
             </div>
-            <button className="primary" onClick={() => onResolve(dispute.id)}>Resolve dispute</button>
+            {dispute.status === 'resolved' ? (
+              <div className="status released" style={{marginTop: '12px'}}>Resolved</div>
+            ) : (
+              <button className="primary" onClick={() => onResolve(dispute.id)}>Resolve dispute</button>
+            )}
           </article>
         ))}
       </div>

@@ -237,6 +237,31 @@ input {
   grid-template-columns: repeat(4, 1fr);
   gap: 12px;
 }
+.job-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+.job-card {
+  display: grid;
+  gap: 8px;
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.job-card:hover {
+  border-color: var(--teal);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(225, 29, 72, 0.15);
+}
+.job-card-amount {
+  font-size: 1.2rem;
+  font-weight: 800;
+  color: #fff;
+}
 .pill, .milestone-card, .dispute-card, .profile-card {
   border: 1px solid var(--line);
   border-radius: 8px;
@@ -325,7 +350,7 @@ input {
 
 @media (max-width: 720px) {
   .hero { padding-top: 28px; }
-  .contract-grid, .metric-grid, .job-meta, .dispute-grid, .reputation-grid { grid-template-columns: 1fr; }
+  .contract-grid, .metric-grid, .job-meta, .dispute-grid, .reputation-grid, .job-grid { grid-template-columns: 1fr; }
   .bar-row, .milestone-card, .milestone-input { grid-template-columns: 1fr; }
   .topbar { gap: 12px; }
   h1 { font-size: clamp(2.15rem, 14vw, 3.4rem); }
