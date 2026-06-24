@@ -114,7 +114,6 @@ export function App() {
 
       toast.loading('Submitting to Stellar...', { id: tId });
       
-      // @ts-expect-error fromXDR returns generic Transaction which is valid here
       const txToSubmit = TransactionBuilder.fromXDR(signResult.signedTxXdr, Networks.TESTNET);
       const response = await server.submitTransaction(txToSubmit);
 
@@ -216,7 +215,6 @@ export function App() {
 
       toast.loading('Submitting to Stellar...', { id: tId });
       
-      // @ts-expect-error fromXDR returns generic Transaction which is valid here
       const txToSubmit = TransactionBuilder.fromXDR(signResult.signedTxXdr, Networks.TESTNET);
       const response = await server.submitTransaction(txToSubmit);
 
