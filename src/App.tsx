@@ -4,7 +4,6 @@ import {
   AlertTriangle,
   BadgeCheck,
   BarChart3,
-  Bell,
   CheckCircle2,
   CircleDollarSign,
   Clock3,
@@ -21,7 +20,7 @@ import clsx from 'clsx';
 import { analytics, eventFor, initialActivity, initialDisputes, initialJobs, nextMilestone, releaseMilestone, reputationScore, users } from './lib/escrowEngine';
 import { contractIds, eventStream } from './lib/contractClient';
 import type { ActivityEvent, Dispute, Job, Milestone } from './types';
-import { isAllowed, requestAccess, getAddress } from '@stellar/freighter-api';
+import { requestAccess, getAddress } from '@stellar/freighter-api';
 import { Horizon } from '@stellar/stellar-sdk';
 import toast, { Toaster } from 'react-hot-toast';
 const tabs = ['Dashboard', 'Create Job', 'Job Details', 'Disputes', 'Reputation'] as const;
@@ -57,6 +56,7 @@ export function App() {
         if (xlmBalance) setBalance(xlmBalance.balance);
       }
     } catch (e) {
+      console.error(e);
       toast.error('Failed to connect wallet');
     }
   };
@@ -67,7 +67,7 @@ export function App() {
 
   const verifyToast = (title: string) => {
     const mockTxHash = Array.from({length: 64}, () => Math.floor(Math.random()*16).toString(16)).join('');
-    toast((t) => (
+    toast(() => (
       <span style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
         <b>{title}</b>
         <a href={`https://stellar.expert/explorer/testnet/tx/${mockTxHash}`} target="_blank" rel="noreferrer" style={{color: '#4ade80', fontSize: '12px', textDecoration: 'underline'}}>Verify on Stellar</a>
