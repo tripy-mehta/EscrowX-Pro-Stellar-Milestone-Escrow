@@ -109,13 +109,13 @@ export function App() {
       .setTimeout(30)
       .build();
 
-      const signedTx = await signTransaction(tx.toXDR(), { networkPassphrase: Networks.TESTNET });
+      const signResult = await signTransaction(tx.toXDR(), { networkPassphrase: Networks.TESTNET });
+      if (signResult.error) throw new Error(signResult.error);
+
       toast.loading('Submitting to Stellar...', { id: tId });
       
-      // We do not cast so that TS is happy, as fromXDR handles it.
-      // Actually fromXDR returns a generic Transaction.
       // @ts-expect-error fromXDR returns generic Transaction which is valid here
-      const txToSubmit = TransactionBuilder.fromXDR(signedTx, Networks.TESTNET);
+      const txToSubmit = TransactionBuilder.fromXDR(signResult.signedTxXdr, Networks.TESTNET);
       const response = await server.submitTransaction(txToSubmit);
 
       toast.dismiss(tId);
@@ -211,11 +211,13 @@ export function App() {
       .setTimeout(30)
       .build();
 
-      const signedTx = await signTransaction(tx.toXDR(), { networkPassphrase: Networks.TESTNET });
+      const signResult = await signTransaction(tx.toXDR(), { networkPassphrase: Networks.TESTNET });
+      if (signResult.error) throw new Error(signResult.error);
+
       toast.loading('Submitting to Stellar...', { id: tId });
       
       // @ts-expect-error fromXDR returns generic Transaction which is valid here
-      const txToSubmit = TransactionBuilder.fromXDR(signedTx, Networks.TESTNET);
+      const txToSubmit = TransactionBuilder.fromXDR(signResult.signedTxXdr, Networks.TESTNET);
       const response = await server.submitTransaction(txToSubmit);
 
       toast.dismiss(tId);
