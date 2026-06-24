@@ -2,10 +2,10 @@
 
 Secure milestone-based freelance payments on Stellar with decentralized dispute resolution and reputation scoring.
 
-**Live Demo**: [EscrowX Pro+ App](https://escrow-x-pro-stellar-milestone-escr.vercel.app/)
-**Demo Video**: [Watch on Google Drive](https://drive.google.com/file/d/1L66NzxRMKFS73Qpg8jZbusTnX048rZAm/view?usp=drive_link)
-**Contract Address**: `GBFHL65A442MESIWKHFEGMWN6GIIECAMTTEX5QYB6SFI5O3W55GAZWES`
-**Transaction Hash**: `7e384c718ea674d8a1c93a0279c6d328906354898144ab941b3c9489f41b3c88`
+- **Live Demo**: [EscrowX Pro+ App](https://escrow-x-pro-stellar-milestone-escr.vercel.app/)
+- **Demo Video**: [Watch on Google Drive](https://drive.google.com/file/d/1L66NzxRMKFS73Qpg8jZbusTnX048rZAm/view?usp=drive_link)
+- **Contract Address**: `GBFHL65A442MESIWKHFEGMWN6GIIECAMTTEX5QYB6SFI5O3W55GAZWES`
+- **Transaction Hash**: `7e384c718ea674d8a1c93a0279c6d328906354898144ab941b3c9489f41b3c88`
 
 ![Landing Page](assets/landing%20page.png)
 
