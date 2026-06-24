@@ -74,13 +74,16 @@ export function App() {
   };
 
   const verifyToast = (title: string, txHash?: string) => {
-    const hash = txHash || Array.from({length: 64}, () => Math.floor(Math.random()*16).toString(16)).join('');
-    toast(() => (
-      <span style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-        <b>{title}</b>
-        <a href={`https://stellar.expert/explorer/testnet/tx/${hash}`} target="_blank" rel="noreferrer" style={{color: '#4ade80', fontSize: '12px', textDecoration: 'underline'}}>Verify on Stellar</a>
-      </span>
-    ), { duration: 5000, style: { background: '#1e293b', color: '#f8fafc', border: '1px solid #4ade80' } });
+    if (txHash) {
+      toast(() => (
+        <span style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+          <b>{title}</b>
+          <a href={`https://stellar.expert/explorer/testnet/tx/${txHash}`} target="_blank" rel="noreferrer" style={{color: '#4ade80', fontSize: '12px', textDecoration: 'underline'}}>Verify on Stellar</a>
+        </span>
+      ), { duration: 5000, style: { background: '#1e293b', color: '#f8fafc', border: '1px solid #4ade80' } });
+    } else {
+      toast.success(title, { duration: 3000, style: { background: '#1e293b', color: '#f8fafc', border: '1px solid #4ade80' } });
+    }
   };
 
   const fundJob = async () => {
