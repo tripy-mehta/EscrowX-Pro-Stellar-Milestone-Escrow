@@ -177,6 +177,16 @@ export function App() {
     }, 1500);
   };
 
+  const resolveDispute = (disputeId: string) => {
+    const tId = toast.loading('Resolving dispute...', { style: { background: '#1e293b', color: '#f8fafc' } });
+    setTimeout(() => {
+      setDisputes((items) => items.map((d) => (d.id === disputeId ? { ...d, status: 'resolved' } : d)));
+      toast.dismiss(tId);
+      verifyToast('Dispute resolved');
+      publish(eventFor('dispute_resolved', 'Dispute resolved', 'Community consensus reached and funds distributed.'));
+    }, 1500);
+  };
+
   const submitRating = () => {
     const tId = toast.loading('Submitting ratings to blockchain...', { style: { background: '#333', color: '#fff' } });
     setTimeout(() => {
@@ -300,7 +310,7 @@ export function App() {
         {activeTab === 'Job Details' && (
           <JobDetails job={selectedJob} onApprove={approveMilestone} onDispute={openDispute} onRating={submitRating} />
         )}
-        {activeTab === 'Disputes' && <DisputeCenter disputes={disputes} onResolve={() => setDisputes((items) => items.map((d, index) => (index === 0 ? { ...d, status: 'resolved' } : d)))} />}
+        {activeTab === 'Disputes' && <DisputeCenter disputes={disputes} onResolve={resolveDispute} />}
         {activeTab === 'Reputation' && <ReputationBoard />}
       </section>
 
@@ -457,7 +467,7 @@ function JobDetails({ job, onApprove, onDispute, onRating }: { job: Job; onAppro
   );
 }
 
-function DisputeCenter({ disputes, onResolve }: { disputes: Dispute[]; onResolve: () => void }) {
+function DisputeCenter({ disputes, onResolve }: { disputes: Dispute[]; onResolve: (id: string) => void }) {
   return (
     <section className="panel">
       <div className="section-title"><Gavel size={20} /> Dispute center</div>
@@ -470,7 +480,7 @@ function DisputeCenter({ disputes, onResolve }: { disputes: Dispute[]; onResolve
               <span style={{ flex: dispute.votesForClient + 1 }}>Client {dispute.votesForClient}</span>
               <span style={{ flex: dispute.votesForFreelancer + 1 }}>Freelancer {dispute.votesForFreelancer}</span>
             </div>
-            <button className="primary" onClick={onResolve}>Resolve dispute</button>
+            <button className="primary" onClick={() => onResolve(dispute.id)}>Resolve dispute</button>
           </article>
         ))}
       </div>
