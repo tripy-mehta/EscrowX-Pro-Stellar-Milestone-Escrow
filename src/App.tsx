@@ -111,7 +111,7 @@ export function App() {
       
       // We do not cast so that TS is happy, as fromXDR handles it.
       // Actually fromXDR returns a generic Transaction.
-      // @ts-ignore
+      // @ts-expect-error fromXDR returns generic Transaction which is valid here
       const txToSubmit = TransactionBuilder.fromXDR(signedTx, Networks.TESTNET);
       const response = await server.submitTransaction(txToSubmit);
 
