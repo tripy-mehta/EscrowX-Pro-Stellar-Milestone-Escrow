@@ -18,7 +18,7 @@ Object.defineProperty(window, 'matchMedia', {
 });
 vi.mock('@stellar/freighter-api', () => ({
   requestAccess: vi.fn().mockResolvedValue(true),
-  getAddress: vi.fn().mockResolvedValue('GCMAYAXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX')
+  getAddress: vi.fn().mockResolvedValue({ address: 'GCMAYAXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX' })
 }));
 
 vi.mock('@stellar/stellar-sdk', () => ({

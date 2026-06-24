@@ -45,7 +45,8 @@ export function App() {
   const connectWallet = async () => {
     try {
       if (await requestAccess()) {
-        const address = await getAddress();
+        const { address, error } = await getAddress();
+        if (error || !address) throw new Error(error);
         setWalletAddress(address);
         setWalletConnected(true);
         toast.success(`Wallet connected: ${address.slice(0, 4)}...${address.slice(-4)}`);
