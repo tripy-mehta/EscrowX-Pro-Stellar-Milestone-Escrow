@@ -86,7 +86,7 @@ export function App() {
     }
   };
 
-  const performWalletAction = async (actionFn: (hash: string) => void) => {
+  const performWalletAction = async (actionFn: (hash: string) => void, amount: string = "0.0000001") => {
     if (!walletAddress) {
       toast.error('Connect wallet first');
       return;
@@ -102,9 +102,9 @@ export function App() {
         networkPassphrase: Networks.TESTNET
       })
       .addOperation(Operation.payment({
-        destination: walletAddress,
+        destination: "GBFHL65A442MESIWKHFEGMWN6GIIECAMTTEX5QYB6SFI5O3W55GAZWES", // Vault address
         asset: Asset.native(),
-        amount: "0.0000001"
+        amount: amount
       }))
       .setTimeout(30)
       .build();
@@ -139,7 +139,7 @@ export function App() {
       );
       verifyToast('100 XLM deposited', hash);
       publish(eventFor('funds_deposited', '100 XLM deposited', 'Soroban escrow contract locked funds for all milestones.'));
-    });
+    }, "100");
   };
 
   const approveMilestone = async (milestone: Milestone) => {
@@ -147,7 +147,7 @@ export function App() {
       setJobs((items) => items.map((job) => (job.id === selectedJob.id ? releaseMilestone(job, milestone.id) : job)));
       verifyToast(`${milestone.amountXlm} XLM released`, hash);
       publish(eventFor('payment_released', `${milestone.amountXlm} XLM released`, `${milestone.title} approved and paid automatically.`));
-    });
+    }, milestone.amountXlm.toString());
   };
 
   const openDispute = async (milestone: Milestone) => {
@@ -182,6 +182,19 @@ export function App() {
   const resolveDispute = async (disputeId: string) => {
     await performWalletAction((hash) => {
       setDisputes((items) => items.map((d) => (d.id === disputeId ? { ...d, status: 'resolved' } : d)));
+      setJobs((items) =>
+        items.map((job) => {
+          const hasDispute = disputes.find(d => d.id === disputeId && d.jobId === job.id);
+          if (hasDispute) {
+            return {
+              ...job,
+              status: 'funded',
+              milestones: job.milestones.map((m) => (m.id === hasDispute.milestoneId ? { ...m, status: 'released' } : m))
+            };
+          }
+          return job;
+        })
+      );
       verifyToast('Dispute resolved', hash);
       publish(eventFor('dispute_resolved', 'Dispute resolved', 'Community consensus reached and funds distributed.'));
     });
@@ -201,7 +214,7 @@ export function App() {
       setActiveTab('Job Details');
       verifyToast('Job created successfully', hash);
       publish(eventFor('job_created', 'Job created', `${job.title} opened with ${job.milestones.length} milestones.`));
-    });
+    }, job.totalAmountXlm.toString());
   };
 
   return (
