@@ -1,7 +1,35 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
+
+Object.defineProperty(window, 'matchMedia', {
+  writable: true,
+  value: vi.fn().mockImplementation((query) => ({
+    matches: false,
+    media: query,
+    onchange: null,
+    addListener: vi.fn(),
+    removeListener: vi.fn(),
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
+    dispatchEvent: vi.fn(),
+  })),
+});
+vi.mock('@stellar/freighter-api', () => ({
+  requestAccess: vi.fn().mockResolvedValue(true),
+  getAddress: vi.fn().mockResolvedValue('GCMAYAXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX')
+}));
+
+vi.mock('@stellar/stellar-sdk', () => ({
+  Horizon: {
+    Server: vi.fn().mockImplementation(() => ({
+      loadAccount: vi.fn().mockResolvedValue({
+        balances: [{ asset_type: 'native', balance: '150.00' }]
+      })
+    }))
+  }
+}));
 import { App } from './App';
 
 function renderApp() {
@@ -30,6 +58,6 @@ describe('EscrowX Pro+ frontend', () => {
   it('shows wallet connection state', async () => {
     renderApp();
     await userEvent.click(screen.getByRole('button', { name: /Connect wallet/i }));
-    expect(screen.getByRole('button', { name: /GCMAYA/i })).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: /GCMAYA/i })).toBeInTheDocument();
   });
 });
