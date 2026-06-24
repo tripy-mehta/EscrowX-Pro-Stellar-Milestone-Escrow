@@ -304,7 +304,17 @@ export function App() {
         {activeTab === 'Reputation' && <ReputationBoard />}
       </section>
 
-      <Toaster position="top-right" />
+      <Toaster 
+        position="top-right" 
+        toastOptions={{
+          style: {
+            marginTop: '60px',
+            fontSize: '15px',
+            padding: '16px 24px',
+            maxWidth: '400px'
+          }
+        }}
+      />
     </main>
   );
 }
