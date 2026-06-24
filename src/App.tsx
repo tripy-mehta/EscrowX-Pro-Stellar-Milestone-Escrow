@@ -99,7 +99,7 @@ export function App() {
         networkPassphrase: Networks.TESTNET
       })
       .addOperation(Operation.payment({
-        destination: contractIds.escrow,
+        destination: walletAddress,
         asset: Asset.native(),
         amount: "0.0000001"
       }))
@@ -185,15 +185,52 @@ export function App() {
     }, 1500);
   };
 
-  const createDemoJob = (job: Job) => {
-    const tId = toast.loading('Creating escrow contract...', { style: { background: '#333', color: '#fff' } });
-    setTimeout(() => {
-      setJobs((items) => [job, ...items]);
-      setActiveTab('Job Details');
+  const createDemoJob = async (job: Job) => {
+    if (!walletAddress) {
+      toast.error('Connect wallet first');
+      return;
+    }
+    const tId = toast.loading('Waiting for wallet signature...', { style: { background: '#1e293b', color: '#f8fafc' } });
+    
+    try {
+      const server = new Horizon.Server("https://horizon-testnet.stellar.org");
+      const account = await server.loadAccount(walletAddress);
+      
+      const tx = new TransactionBuilder(account, {
+        fee: '100',
+        networkPassphrase: Networks.TESTNET
+      })
+      .addOperation(Operation.payment({
+        destination: walletAddress,
+        asset: Asset.native(),
+        amount: "0.0000001"
+      }))
+      .setTimeout(30)
+      .build();
+
+      const signedTx = await signTransaction(tx.toXDR(), { networkPassphrase: Networks.TESTNET });
+      toast.loading('Submitting to Stellar...', { id: tId });
+      
+      // @ts-expect-error fromXDR returns generic Transaction which is valid here
+      const txToSubmit = TransactionBuilder.fromXDR(signedTx, Networks.TESTNET);
+      const response = await server.submitTransaction(txToSubmit);
+
       toast.dismiss(tId);
-      verifyToast('Job created successfully');
-      publish(eventFor('job_created', 'Job created', `${job.title} opened with ${job.milestones.length} milestones.`));
-    }, 1500);
+      
+      if (response.successful) {
+        setJobs((items) => [job, ...items]);
+        setActiveTab('Job Details');
+        verifyToast('Job created successfully', response.hash);
+        publish(eventFor('job_created', 'Job created', `${job.title} opened with ${job.milestones.length} milestones.`));
+        await fetchBalance(walletAddress);
+      } else {
+        toast.error('Transaction failed');
+      }
+
+    } catch (e) {
+      console.error(e);
+      toast.error('Transaction rejected or failed', { id: tId });
+    }
   };
 
   return (
