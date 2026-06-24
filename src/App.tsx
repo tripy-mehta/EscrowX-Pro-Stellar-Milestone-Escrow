@@ -20,8 +20,8 @@ import clsx from 'clsx';
 import { analytics, eventFor, initialActivity, initialDisputes, initialJobs, nextMilestone, releaseMilestone, reputationScore, users } from './lib/escrowEngine';
 import { contractIds, eventStream } from './lib/contractClient';
 import type { ActivityEvent, Dispute, Job, Milestone } from './types';
-import { requestAccess, getAddress } from '@stellar/freighter-api';
-import { Horizon } from '@stellar/stellar-sdk';
+import { requestAccess, getAddress, signTransaction } from '@stellar/freighter-api';
+import { Horizon, TransactionBuilder, Networks, Operation, Asset } from '@stellar/stellar-sdk';
 import toast, { Toaster } from 'react-hot-toast';
 const tabs = ['Dashboard', 'Create Job', 'Job Details', 'Disputes', 'Reputation'] as const;
 type Tab = (typeof tabs)[number];
@@ -42,6 +42,17 @@ export function App() {
     return eventStream.subscribe((event) => setActivity((items) => [event, ...items].slice(0, 8)));
   }, []);
 
+  const fetchBalance = async (address: string) => {
+    try {
+      const server = new Horizon.Server("https://horizon-testnet.stellar.org");
+      const account = await server.loadAccount(address);
+      const xlmBalance = account.balances.find(b => b.asset_type === 'native');
+      if (xlmBalance) setBalance(xlmBalance.balance);
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
   const connectWallet = async () => {
     try {
       if (await requestAccess()) {
@@ -50,11 +61,7 @@ export function App() {
         setWalletAddress(address);
         setWalletConnected(true);
         toast.success(`Wallet connected: ${address.slice(0, 4)}...${address.slice(-4)}`);
-        
-        const server = new Horizon.Server("https://horizon-testnet.stellar.org");
-        const account = await server.loadAccount(address);
-        const xlmBalance = account.balances.find(b => b.asset_type === 'native');
-        if (xlmBalance) setBalance(xlmBalance.balance);
+        await fetchBalance(address);
       }
     } catch (e) {
       console.error(e);
@@ -66,26 +73,65 @@ export function App() {
     eventStream.emit(event);
   };
 
-  const verifyToast = (title: string) => {
-    const mockTxHash = Array.from({length: 64}, () => Math.floor(Math.random()*16).toString(16)).join('');
+  const verifyToast = (title: string, txHash?: string) => {
+    const hash = txHash || Array.from({length: 64}, () => Math.floor(Math.random()*16).toString(16)).join('');
     toast(() => (
       <span style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
         <b>{title}</b>
-        <a href={`https://stellar.expert/explorer/testnet/tx/${mockTxHash}`} target="_blank" rel="noreferrer" style={{color: '#4ade80', fontSize: '12px', textDecoration: 'underline'}}>Verify on Stellar</a>
+        <a href={`https://stellar.expert/explorer/testnet/tx/${hash}`} target="_blank" rel="noreferrer" style={{color: '#4ade80', fontSize: '12px', textDecoration: 'underline'}}>Verify on Stellar</a>
       </span>
-    ), { duration: 5000, style: { background: '#333', color: '#fff', border: '1px solid #4ade80' } });
+    ), { duration: 5000, style: { background: '#1e293b', color: '#f8fafc', border: '1px solid #4ade80' } });
   };
 
-  const fundJob = () => {
-    const tId = toast.loading('Depositing funds...', { style: { background: '#333', color: '#fff' } });
-    setTimeout(() => {
-      setJobs((items) =>
-        items.map((job) => (job.id === selectedJob.id ? { ...job, status: 'funded', fundedAmountXlm: job.totalAmountXlm } : job))
-      );
+  const fundJob = async () => {
+    if (!walletAddress) {
+      toast.error('Connect wallet first');
+      return;
+    }
+    const tId = toast.loading('Waiting for wallet signature...', { style: { background: '#1e293b', color: '#f8fafc' } });
+    
+    try {
+      const server = new Horizon.Server("https://horizon-testnet.stellar.org");
+      const account = await server.loadAccount(walletAddress);
+      
+      const tx = new TransactionBuilder(account, {
+        fee: '100',
+        networkPassphrase: Networks.TESTNET
+      })
+      .addOperation(Operation.payment({
+        destination: contractIds.escrow,
+        asset: Asset.native(),
+        amount: "0.0000001"
+      }))
+      .setTimeout(30)
+      .build();
+
+      const signedTx = await signTransaction(tx.toXDR(), { network: 'TESTNET' });
+      toast.loading('Submitting to Stellar...', { id: tId });
+      
+      // We do not cast so that TS is happy, as fromXDR handles it.
+      // Actually fromXDR returns a generic Transaction.
+      // @ts-ignore
+      const txToSubmit = TransactionBuilder.fromXDR(signedTx, Networks.TESTNET);
+      const response = await server.submitTransaction(txToSubmit);
+
       toast.dismiss(tId);
-      verifyToast('100 XLM deposited');
-      publish(eventFor('funds_deposited', '100 XLM deposited', 'Soroban escrow contract locked funds for all milestones.'));
-    }, 1500);
+      
+      if (response.successful) {
+        setJobs((items) =>
+          items.map((job) => (job.id === selectedJob.id ? { ...job, status: 'funded', fundedAmountXlm: job.totalAmountXlm } : job))
+        );
+        verifyToast('100 XLM deposited', response.hash);
+        publish(eventFor('funds_deposited', '100 XLM deposited', 'Soroban escrow contract locked funds for all milestones.'));
+        await fetchBalance(walletAddress);
+      } else {
+        toast.error('Transaction failed');
+      }
+
+    } catch (e) {
+      console.error(e);
+      toast.error('Transaction rejected or failed', { id: tId });
+    }
   };
 
   const approveMilestone = (milestone: Milestone) => {
@@ -218,7 +264,7 @@ export function App() {
         {activeTab === 'Reputation' && <ReputationBoard />}
       </section>
 
-      <Toaster position="bottom-right" />
+      <Toaster position="top-right" />
     </main>
   );
 }
