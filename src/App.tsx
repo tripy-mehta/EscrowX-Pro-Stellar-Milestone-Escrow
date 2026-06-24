@@ -106,7 +106,7 @@ export function App() {
       .setTimeout(30)
       .build();
 
-      const signedTx = await signTransaction(tx.toXDR(), { network: 'TESTNET' });
+      const signedTx = await signTransaction(tx.toXDR(), { networkPassphrase: Networks.TESTNET });
       toast.loading('Submitting to Stellar...', { id: tId });
       
       // We do not cast so that TS is happy, as fromXDR handles it.
