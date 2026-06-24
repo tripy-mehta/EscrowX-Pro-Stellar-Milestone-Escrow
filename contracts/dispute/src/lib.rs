@@ -54,3 +54,6 @@ impl DisputeContract {
         client_wins
     }
 }
+
+#[cfg(test)]
+mod test;

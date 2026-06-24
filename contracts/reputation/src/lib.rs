@@ -51,3 +51,6 @@ impl ReputationContract {
         average + reputation.completed_jobs - reputation.disputes_lost * 8
     }
 }
+
+#[cfg(test)]
+mod test;

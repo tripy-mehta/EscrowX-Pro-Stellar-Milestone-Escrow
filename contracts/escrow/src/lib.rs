@@ -81,3 +81,6 @@ impl EscrowContract {
         env.events().publish((symbol_short!("cancel"), job_id), job.client);
     }
 }
+
+#[cfg(test)]
+mod test;
