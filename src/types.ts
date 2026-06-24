@@ -55,6 +55,7 @@ export interface ActivityEvent {
     | 'milestone_completed'
     | 'payment_released'
     | 'dispute_opened'
+    | 'dispute_resolved'
     | 'rating_added'
     | 'score_updated';
   title: string;
