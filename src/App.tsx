@@ -86,7 +86,7 @@ export function App() {
     }
   };
 
-  const fundJob = async () => {
+  const performWalletAction = async (actionFn: (hash: string) => void) => {
     if (!walletAddress) {
       toast.error('Connect wallet first');
       return;
@@ -120,11 +120,7 @@ export function App() {
       toast.dismiss(tId);
       
       if (response.successful) {
-        setJobs((items) =>
-          items.map((job) => (job.id === selectedJob.id ? { ...job, status: 'funded', fundedAmountXlm: job.totalAmountXlm } : job))
-        );
-        verifyToast('100 XLM deposited', response.hash);
-        publish(eventFor('funds_deposited', '100 XLM deposited', 'Soroban escrow contract locked funds for all milestones.'));
+        actionFn(response.hash);
         await fetchBalance(walletAddress);
       } else {
         toast.error('Transaction failed');
@@ -136,17 +132,25 @@ export function App() {
     }
   };
 
-  const approveMilestone = (milestone: Milestone) => {
-    const tId = toast.loading('Approving milestone...', { style: { background: '#333', color: '#fff' } });
-    setTimeout(() => {
-      setJobs((items) => items.map((job) => (job.id === selectedJob.id ? releaseMilestone(job, milestone.id) : job)));
-      toast.dismiss(tId);
-      verifyToast(`${milestone.amountXlm} XLM released`);
-      publish(eventFor('payment_released', `${milestone.amountXlm} XLM released`, `${milestone.title} approved and paid automatically.`));
-    }, 1500);
+  const fundJob = async () => {
+    await performWalletAction((hash) => {
+      setJobs((items) =>
+        items.map((job) => (job.id === selectedJob.id ? { ...job, status: 'funded', fundedAmountXlm: job.totalAmountXlm } : job))
+      );
+      verifyToast('100 XLM deposited', hash);
+      publish(eventFor('funds_deposited', '100 XLM deposited', 'Soroban escrow contract locked funds for all milestones.'));
+    });
   };
 
-  const openDispute = (milestone: Milestone) => {
+  const approveMilestone = async (milestone: Milestone) => {
+    await performWalletAction((hash) => {
+      setJobs((items) => items.map((job) => (job.id === selectedJob.id ? releaseMilestone(job, milestone.id) : job)));
+      verifyToast(`${milestone.amountXlm} XLM released`, hash);
+      publish(eventFor('payment_released', `${milestone.amountXlm} XLM released`, `${milestone.title} approved and paid automatically.`));
+    });
+  };
+
+  const openDispute = async (milestone: Milestone) => {
     const dispute: Dispute = {
       id: `disp_${milestone.id}`,
       jobId: selectedJob.id,
@@ -157,8 +161,7 @@ export function App() {
       votesForClient: 0,
       votesForFreelancer: 0
     };
-    const tId = toast.loading('Opening dispute...', { style: { background: '#333', color: '#fff' } });
-    setTimeout(() => {
+    await performWalletAction((hash) => {
       setDisputes((items) => [dispute, ...items]);
       setJobs((items) =>
         items.map((job) =>
@@ -171,79 +174,34 @@ export function App() {
             : job
         )
       );
-      toast.dismiss(tId);
-      verifyToast('Dispute opened');
+      verifyToast('Dispute opened', hash);
       publish(eventFor('dispute_opened', 'Dispute opened', `Evidence stored at IPFS hash ${dispute.evidenceHash}.`));
-    }, 1500);
+    });
   };
 
-  const resolveDispute = (disputeId: string) => {
-    const tId = toast.loading('Resolving dispute...', { style: { background: '#1e293b', color: '#f8fafc' } });
-    setTimeout(() => {
+  const resolveDispute = async (disputeId: string) => {
+    await performWalletAction((hash) => {
       setDisputes((items) => items.map((d) => (d.id === disputeId ? { ...d, status: 'resolved' } : d)));
-      toast.dismiss(tId);
-      verifyToast('Dispute resolved');
+      verifyToast('Dispute resolved', hash);
       publish(eventFor('dispute_resolved', 'Dispute resolved', 'Community consensus reached and funds distributed.'));
-    }, 1500);
+    });
   };
 
-  const submitRating = () => {
-    const tId = toast.loading('Submitting ratings to blockchain...', { style: { background: '#333', color: '#fff' } });
-    setTimeout(() => {
-      toast.dismiss(tId);
-      verifyToast('Reputation score updated');
+  const submitRating = async () => {
+    await performWalletAction((hash) => {
+      verifyToast('Reputation score updated', hash);
       publish(eventFor('rating_added', 'Rating submitted', 'Both parties signed reputation updates on-chain.'));
       publish(eventFor('score_updated', 'Reputation score updated', 'Public scores refreshed after completed milestone.'));
-    }, 1500);
+    });
   };
 
   const createDemoJob = async (job: Job) => {
-    if (!walletAddress) {
-      toast.error('Connect wallet first');
-      return;
-    }
-    const tId = toast.loading('Waiting for wallet signature...', { style: { background: '#1e293b', color: '#f8fafc' } });
-    
-    try {
-      const server = new Horizon.Server("https://horizon-testnet.stellar.org");
-      const account = await server.loadAccount(walletAddress);
-      
-      const tx = new TransactionBuilder(account, {
-        fee: '100',
-        networkPassphrase: Networks.TESTNET
-      })
-      .addOperation(Operation.payment({
-        destination: walletAddress,
-        asset: Asset.native(),
-        amount: "0.0000001"
-      }))
-      .setTimeout(30)
-      .build();
-
-      const signResult = await signTransaction(tx.toXDR(), { networkPassphrase: Networks.TESTNET });
-      if (signResult.error) throw new Error(signResult.error);
-
-      toast.loading('Submitting to Stellar...', { id: tId });
-      
-      const txToSubmit = TransactionBuilder.fromXDR(signResult.signedTxXdr, Networks.TESTNET);
-      const response = await server.submitTransaction(txToSubmit);
-
-      toast.dismiss(tId);
-      
-      if (response.successful) {
-        setJobs((items) => [job, ...items]);
-        setActiveTab('Job Details');
-        verifyToast('Job created successfully', response.hash);
-        publish(eventFor('job_created', 'Job created', `${job.title} opened with ${job.milestones.length} milestones.`));
-        await fetchBalance(walletAddress);
-      } else {
-        toast.error('Transaction failed');
-      }
-
-    } catch (e) {
-      console.error(e);
-      toast.error('Transaction rejected or failed', { id: tId });
-    }
+    await performWalletAction((hash) => {
+      setJobs((items) => [job, ...items]);
+      setActiveTab('Job Details');
+      verifyToast('Job created successfully', hash);
+      publish(eventFor('job_created', 'Job created', `${job.title} opened with ${job.milestones.length} milestones.`));
+    });
   };
 
   return (
