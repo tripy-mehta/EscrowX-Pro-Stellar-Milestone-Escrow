@@ -20,7 +20,7 @@ We have integrated GitHub Actions to automate our testing, linting, and build wo
 ![CI/CD Pipeline](assets/CICD%20Pipeline%20Running.png)
 
 ### 3. Test Output (3+ Passing Tests)
-We use Vitest to mock and verify our core escrow transition logic and component rendering, ensuring rock-solid state management.
+We use Vitest to mock and verify our core escrow transition logic and component rendering, ensuring rock-solid state management and reliability.
 ![Test Output](assets/Test%20Output.png)
 
 ---
