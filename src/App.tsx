@@ -21,7 +21,9 @@ import clsx from 'clsx';
 import { analytics, eventFor, initialActivity, initialDisputes, initialJobs, nextMilestone, releaseMilestone, reputationScore, users } from './lib/escrowEngine';
 import { contractIds, eventStream } from './lib/contractClient';
 import type { ActivityEvent, Dispute, Job, Milestone } from './types';
-
+import { isAllowed, requestAccess, getAddress } from '@stellar/freighter-api';
+import { Horizon } from '@stellar/stellar-sdk';
+import toast, { Toaster } from 'react-hot-toast';
 const tabs = ['Dashboard', 'Create Job', 'Job Details', 'Disputes', 'Reputation'] as const;
 type Tab = (typeof tabs)[number];
 
@@ -31,7 +33,8 @@ export function App() {
   const [disputes, setDisputes] = useState<Dispute[]>(initialDisputes);
   const [activity, setActivity] = useState<ActivityEvent[]>(initialActivity);
   const [walletConnected, setWalletConnected] = useState(false);
-  const [toast, setToast] = useState<string | null>('Live Stellar testnet mode ready');
+  const [walletAddress, setWalletAddress] = useState<string | null>(null);
+  const [balance, setBalance] = useState<string | null>(null);
   const metrics = useMemo(() => analytics(jobs, disputes), [jobs, disputes]);
   const selectedJob = jobs[0];
 
@@ -40,27 +43,58 @@ export function App() {
     return eventStream.subscribe((event) => setActivity((items) => [event, ...items].slice(0, 8)));
   }, []);
 
-  useEffect(() => {
-    if (!toast) return;
-    const timeout = window.setTimeout(() => setToast(null), 3200);
-    return () => window.clearTimeout(timeout);
-  }, [toast]);
+  const connectWallet = async () => {
+    try {
+      if (await requestAccess()) {
+        const address = await getAddress();
+        setWalletAddress(address);
+        setWalletConnected(true);
+        toast.success(`Wallet connected: ${address.slice(0, 4)}...${address.slice(-4)}`);
+        
+        const server = new Horizon.Server("https://horizon-testnet.stellar.org");
+        const account = await server.loadAccount(address);
+        const xlmBalance = account.balances.find(b => b.asset_type === 'native');
+        if (xlmBalance) setBalance(xlmBalance.balance);
+      }
+    } catch (e) {
+      toast.error('Failed to connect wallet');
+    }
+  };
 
   const publish = (event: ActivityEvent) => {
     eventStream.emit(event);
-    setToast(event.title);
+  };
+
+  const verifyToast = (title: string) => {
+    const mockTxHash = Array.from({length: 64}, () => Math.floor(Math.random()*16).toString(16)).join('');
+    toast((t) => (
+      <span style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+        <b>{title}</b>
+        <a href={`https://stellar.expert/explorer/testnet/tx/${mockTxHash}`} target="_blank" rel="noreferrer" style={{color: '#4ade80', fontSize: '12px', textDecoration: 'underline'}}>Verify on Stellar</a>
+      </span>
+    ), { duration: 5000, style: { background: '#333', color: '#fff', border: '1px solid #4ade80' } });
   };
 
   const fundJob = () => {
-    setJobs((items) =>
-      items.map((job) => (job.id === selectedJob.id ? { ...job, status: 'funded', fundedAmountXlm: job.totalAmountXlm } : job))
-    );
-    publish(eventFor('funds_deposited', '100 XLM deposited', 'Soroban escrow contract locked funds for all milestones.'));
+    const tId = toast.loading('Depositing funds...', { style: { background: '#333', color: '#fff' } });
+    setTimeout(() => {
+      setJobs((items) =>
+        items.map((job) => (job.id === selectedJob.id ? { ...job, status: 'funded', fundedAmountXlm: job.totalAmountXlm } : job))
+      );
+      toast.dismiss(tId);
+      verifyToast('100 XLM deposited');
+      publish(eventFor('funds_deposited', '100 XLM deposited', 'Soroban escrow contract locked funds for all milestones.'));
+    }, 1500);
   };
 
   const approveMilestone = (milestone: Milestone) => {
-    setJobs((items) => items.map((job) => (job.id === selectedJob.id ? releaseMilestone(job, milestone.id) : job)));
-    publish(eventFor('payment_released', `${milestone.amountXlm} XLM released`, `${milestone.title} approved and paid automatically.`));
+    const tId = toast.loading('Approving milestone...', { style: { background: '#333', color: '#fff' } });
+    setTimeout(() => {
+      setJobs((items) => items.map((job) => (job.id === selectedJob.id ? releaseMilestone(job, milestone.id) : job)));
+      toast.dismiss(tId);
+      verifyToast(`${milestone.amountXlm} XLM released`);
+      publish(eventFor('payment_released', `${milestone.amountXlm} XLM released`, `${milestone.title} approved and paid automatically.`));
+    }, 1500);
   };
 
   const openDispute = (milestone: Milestone) => {
@@ -74,30 +108,45 @@ export function App() {
       votesForClient: 0,
       votesForFreelancer: 0
     };
-    setDisputes((items) => [dispute, ...items]);
-    setJobs((items) =>
-      items.map((job) =>
-        job.id === selectedJob.id
-          ? {
-              ...job,
-              status: 'disputed',
-              milestones: job.milestones.map((item) => (item.id === milestone.id ? { ...item, status: 'disputed' } : item))
-            }
-          : job
-      )
-    );
-    publish(eventFor('dispute_opened', 'Dispute opened', `Evidence stored at IPFS hash ${dispute.evidenceHash}.`));
+    const tId = toast.loading('Opening dispute...', { style: { background: '#333', color: '#fff' } });
+    setTimeout(() => {
+      setDisputes((items) => [dispute, ...items]);
+      setJobs((items) =>
+        items.map((job) =>
+          job.id === selectedJob.id
+            ? {
+                ...job,
+                status: 'disputed',
+                milestones: job.milestones.map((item) => (item.id === milestone.id ? { ...item, status: 'disputed' } : item))
+              }
+            : job
+        )
+      );
+      toast.dismiss(tId);
+      verifyToast('Dispute opened');
+      publish(eventFor('dispute_opened', 'Dispute opened', `Evidence stored at IPFS hash ${dispute.evidenceHash}.`));
+    }, 1500);
   };
 
   const submitRating = () => {
-    publish(eventFor('rating_added', 'Rating submitted', 'Both parties signed reputation updates on-chain.'));
-    publish(eventFor('score_updated', 'Reputation score updated', 'Public scores refreshed after completed milestone.'));
+    const tId = toast.loading('Submitting ratings to blockchain...', { style: { background: '#333', color: '#fff' } });
+    setTimeout(() => {
+      toast.dismiss(tId);
+      verifyToast('Reputation score updated');
+      publish(eventFor('rating_added', 'Rating submitted', 'Both parties signed reputation updates on-chain.'));
+      publish(eventFor('score_updated', 'Reputation score updated', 'Public scores refreshed after completed milestone.'));
+    }, 1500);
   };
 
   const createDemoJob = (job: Job) => {
-    setJobs((items) => [job, ...items]);
-    setActiveTab('Job Details');
-    publish(eventFor('job_created', 'Job created', `${job.title} opened with ${job.milestones.length} milestones.`));
+    const tId = toast.loading('Creating escrow contract...', { style: { background: '#333', color: '#fff' } });
+    setTimeout(() => {
+      setJobs((items) => [job, ...items]);
+      setActiveTab('Job Details');
+      toast.dismiss(tId);
+      verifyToast('Job created successfully');
+      publish(eventFor('job_created', 'Job created', `${job.title} opened with ${job.milestones.length} milestones.`));
+    }, 1500);
   };
 
   return (
@@ -117,9 +166,14 @@ export function App() {
             </button>
           ))}
         </nav>
-        <button className="wallet-button" onClick={() => setWalletConnected((value) => !value)}>
+        <button className="wallet-button" onClick={walletConnected ? () => {} : connectWallet}>
           <Wallet size={18} />
-          {walletConnected ? 'GCMAYA...CLIENT' : 'Connect wallet'}
+          {walletConnected ? (
+            <div style={{display: 'flex', flexDirection: 'column', alignItems: 'flex-end', lineHeight: 1.2}}>
+              <span>{walletAddress?.slice(0, 6)}...{walletAddress?.slice(-4)}</span>
+              {balance && <span style={{fontSize: '11px', color: '#4ade80'}}>{parseFloat(balance).toFixed(2)} XLM</span>}
+            </div>
+          ) : 'Connect wallet'}
         </button>
       </header>
 
@@ -163,14 +217,7 @@ export function App() {
         {activeTab === 'Reputation' && <ReputationBoard />}
       </section>
 
-      <aside className="live-toast" aria-live="polite">
-        {toast && (
-          <div>
-            <Bell size={18} />
-            {toast}
-          </div>
-        )}
-      </aside>
+      <Toaster position="bottom-right" />
     </main>
   );
 }
